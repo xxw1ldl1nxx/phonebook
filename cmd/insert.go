@@ -1,11 +1,9 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -13,28 +11,54 @@ import (
 // insertCmd represents the insert command
 var insertCmd = &cobra.Command{
 	Use:   "insert",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Insert contact",
+	Long:  `Insert contact (name, surname, telephone) to application's database.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("insert called")
+		name, _ := cmd.Flags().GetString("name")
+		if name == "" {
+			fmt.Println("empty name")
+			return
+		}
+		surname, _ := cmd.Flags().GetString("surname")
+		if surname == "" {
+			fmt.Println("empty surname")
+			return
+		}
+		telephone, _ := cmd.Flags().GetString("telephone")
+		if telephone == "" {
+			fmt.Println("empty telephone")
+			return
+		}
+		telForm := strings.ReplaceAll(telephone, "-", "")
+		if !matchTel(telForm) {
+			fmt.Println("not a valid telephone format")
+			return
+		}
+		entry := NewEntry(name, surname, telForm)
+		insert(entry)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(insertCmd)
+	insertCmd.Flags().StringP("name", "n", "", "contact name")
+	insertCmd.Flags().StringP("surname", "s", "", "contact surname")
+	insertCmd.Flags().StringP("telephone", "t", "", "contact telephone")
 
-	// Here you will define your flags and configuration settings.
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// insertCmd.PersistentFlags().String("foo", "", "A help for foo")
+func matchTel(t string) bool {
+	re := regexp.MustCompile(`^\d+$`)
+	return re.Match([]byte(t))
+}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// insertCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func insert(entry *Entry) error {
+	if _, ok := index[entry.Tel]; ok {
+		return fmt.Errorf("telephone %s is already exists", entry.Tel)
+	}
+	data = append(data, *entry)
+	if err := saveJSONFile(JSONFILE); err != nil {
+		return err
+	}
+	return nil
 }

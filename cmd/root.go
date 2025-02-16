@@ -1,51 +1,132 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
+const TIMEFORM = "02/01/2006 - 15:04"
 
-
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "phonebook",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+type Entry struct {
+	Name       string `json:"name"`
+	Surname    string `json:"surname"`
+	Tel        string `json:"telephone"`
+	LastAccess string `json:"lastaccess"`
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
+type phoneBook []Entry
+
+var JSONFILE = "storage/contacts.json"
+var index map[string]int
+var data = phoneBook{}
+
+func DeSerialize(slice any, data io.Reader) error {
+	d := json.NewDecoder(data)
+	return d.Decode(slice)
+}
+
+func Serialize(slice any, data io.Writer) error {
+	e := json.NewEncoder(data)
+	return e.Encode(slice)
+}
+
+func readJSONFile(filepath string) error {
+	if _, err := os.Stat(filepath); err != nil {
+		return err
+	}
+	f, err := os.Open(filepath)
 	if err != nil {
-		os.Exit(1)
+		return err
+	}
+	defer f.Close()
+	if err := DeSerialize(&data, f); err != nil {
+		return err
+	}
+	return nil
+}
+
+func saveJSONFile(filepath string) error {
+	f, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := Serialize(&data, f); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createIndex() {
+	index = make(map[string]int, len(data))
+	for i, entry := range data {
+		index[entry.Tel] = i
 	}
 }
 
-func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+func NewEntry(n, s, t string) *Entry {
+	if n == "" || s == "" {
+		return nil
+	}
+	la := time.Now().Format(TIMEFORM)
+	return &Entry{
+		Name:       n,
+		Surname:    s,
+		Tel:        t,
+		LastAccess: la,
+	}
+}
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.phonebook.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func setJSONFILE() error {
+	path := os.Getenv("PHONEBOOK")
+	if path != "" {
+		JSONFILE = path
+	}
+	if _, err := os.Stat(path); err != nil {
+		fmt.Printf("Creating: %s\n", path)
+		f, err := os.Create(path)
+		if err != nil {
+			f.Close()
+			return err
+		}
+		f.Close()
+	}
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if !fileInfo.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", path)
+	}
+	return nil
 }
 
 
+var rootCmd = &cobra.Command{
+	Use:   "phonebook",
+	Short: "A phonebook application.",
+	Long: `This is a phonebook application that uses JSON file to record.`,
+
+}
+
+func Execute() {
+	if err := setJSONFILE(); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if err := readJSONFile(JSONFILE); err != nil && err != io.EOF {
+		fmt.Println(err)
+		return
+	}
+	createIndex()
+
+	cobra.CheckErr(rootCmd.Execute())
+}
+
+func init() {
+}

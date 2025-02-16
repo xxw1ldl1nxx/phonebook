@@ -1,40 +1,62 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"sort"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
-// listCmd represents the list command
+var green = color.New(color.FgGreen).SprintFunc()
+var cyan = color.New(color.FgCyan).SprintFunc()
+
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "List of entry.",
+	Long:  `Shows full list of recorded entrys.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("list called")
+		printList()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+}
 
-	// Here you will define your flags and configuration settings.
+func (b phoneBook) Len() int {
+	return len(b)
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listCmd.PersistentFlags().String("foo", "", "A help for foo")
+func (b phoneBook) Less(i, j int) bool {
+	if b[i].Surname == b[j].Surname {
+		return b[i].Name < b[j].Name
+	}
+	return b[i].Surname < b[j].Surname
+}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func (b phoneBook) Swap(i, j int) {
+	b[i], b[j] = b[j], b[i]
+}
+
+func printList() {
+	sort.Sort(data)
+	for i, entry := range data {
+		printOne(entry, i)
+	}
+}
+
+func printOne(entry Entry, idx int) {
+	coloredText := fmt.Sprintf(
+		"name: %s, surname: %s, tel: %s, last access: %s",
+		green(entry.Name),
+		green(entry.Surname),
+		green(entry.Tel),
+		green(entry.LastAccess),
+	)
+	if idx > 0 {
+		fmt.Println(cyan(idx), coloredText)
+	} else {
+		fmt.Println(coloredText)
+	}
 }

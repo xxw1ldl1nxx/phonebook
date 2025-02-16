@@ -1,40 +1,47 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-// deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Delete contact.",
+	Long:  `Delete contact with number.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+		telephone, _ := cmd.Flags().GetString("telephone")
+		if telephone == "" {
+			fmt.Println("empty telephone")
+			return
+		}
+		telForm := strings.ReplaceAll(telephone, "-", "")
+		if !matchTel(telForm) {
+			fmt.Println("not a valid telephone format")
+			return
+		}
+		if err := deleteEntry(telForm); err != nil {
+			fmt.Println(err)
+			return
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
+	deleteCmd.Flags().StringP("telephone", "t", "", "telephone of user to delete")
+}
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// deleteCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// deleteCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func deleteEntry(tel string) error {
+	idx, ok := index[tel]
+	if ok {
+		return fmt.Errorf("telephone %s doesn't exists", tel)
+	}
+	data = append(data[:idx], data[idx+1:]...)
+	if err := saveJSONFile(JSONFILE); err != nil {
+		return err
+	}
+	return nil
 }

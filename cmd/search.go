@@ -1,40 +1,45 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-// searchCmd represents the search command
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Search entry.",
+	Long: `Search saved entry by his phone number.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("search called")
+		telephone, _ := cmd.Flags().GetString("key")
+		if telephone == "" {
+			fmt.Println("empty telephone")
+			return
+		}
+		telForm := strings.ReplaceAll(telephone, "-", "")
+		if !matchTel(telForm) {
+			fmt.Println("not a valid telephone format")
+			return
+		}
+		if err := search(telForm); err != nil {
+			fmt.Println(err)
+			return 
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(searchCmd)
+	searchCmd.Flags().StringP("key", "k", "", "telephone for search")
+}
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// searchCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// searchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func search(tel string) error {
+	idx, ok := index[tel]
+	if ok {
+		return fmt.Errorf("telephone %s doesn't exists", tel)
+	}
+	entry := data[idx]
+	printOne(entry, -1)
+	return nil
 }
