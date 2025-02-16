@@ -21,7 +21,7 @@ type Entry struct {
 
 type phoneBook []Entry
 
-var JSONFILE = "storage/contacts.json"
+var JSONFILE = "./storage/contacts.json"
 var index map[string]int
 var data = phoneBook{}
 
@@ -69,11 +69,15 @@ func createIndex() {
 	}
 }
 
+func makeTime() string {
+	return time.Now().Format(TIMEFORM)
+}
+
 func NewEntry(n, s, t string) *Entry {
 	if n == "" || s == "" {
 		return nil
 	}
-	la := time.Now().Format(TIMEFORM)
+	la := makeTime()
 	return &Entry{
 		Name:       n,
 		Surname:    s,
@@ -87,31 +91,29 @@ func setJSONFILE() error {
 	if path != "" {
 		JSONFILE = path
 	}
-	if _, err := os.Stat(path); err != nil {
-		fmt.Printf("Creating: %s\n", path)
-		f, err := os.Create(path)
+	if _, err := os.Stat(JSONFILE); err != nil {
+		fmt.Printf("Creating: %s\n", JSONFILE)
+		f, err := os.Create(JSONFILE)
 		if err != nil {
 			f.Close()
 			return err
 		}
 		f.Close()
 	}
-	fileInfo, err := os.Stat(path)
+	fileInfo, err := os.Stat(JSONFILE)
 	if err != nil {
 		return err
 	}
 	if !fileInfo.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", path)
+		return fmt.Errorf("%s is not a regular file", JSONFILE)
 	}
 	return nil
 }
 
-
 var rootCmd = &cobra.Command{
 	Use:   "phonebook",
 	Short: "A phonebook application.",
-	Long: `This is a phonebook application that uses JSON file to record.`,
-
+	Long:  `This is a phonebook application that uses JSON file to record.`,
 }
 
 func Execute() {

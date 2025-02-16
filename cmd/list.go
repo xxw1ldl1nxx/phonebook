@@ -54,8 +54,8 @@ func printOne(entry Entry, idx int) {
 		green(entry.Tel),
 		green(entry.LastAccess),
 	)
-	if idx > 0 {
-		fmt.Println(cyan(idx), coloredText)
+	if idx >= 0 {
+		fmt.Println(cyan(idx+1), coloredText)
 	} else {
 		fmt.Println(coloredText)
 	}

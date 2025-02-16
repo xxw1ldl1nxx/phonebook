@@ -10,7 +10,7 @@ import (
 var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search entry.",
-	Long: `Search saved entry by his phone number.`,
+	Long:  `Search saved entry by his phone number.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		telephone, _ := cmd.Flags().GetString("key")
 		if telephone == "" {
@@ -24,7 +24,7 @@ var searchCmd = &cobra.Command{
 		}
 		if err := search(telForm); err != nil {
 			fmt.Println(err)
-			return 
+			return
 		}
 	},
 }
@@ -36,8 +36,12 @@ func init() {
 
 func search(tel string) error {
 	idx, ok := index[tel]
-	if ok {
+	if !ok {
 		return fmt.Errorf("telephone %s doesn't exists", tel)
+	}
+	data[idx].LastAccess = makeTime()
+	if err := saveJSONFile(JSONFILE); err != nil {
+		return err
 	}
 	entry := data[idx]
 	printOne(entry, -1)
